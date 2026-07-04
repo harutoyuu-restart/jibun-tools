@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iPhoneハンズオン — 株式会社じぶん</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: #f0ede8;
+      color: #2c2826;
+      min-height: 100vh;
+      padding: 20px 16px 60px;
+    }
+
+    header { text-align: center; padding: 24px 0 20px; }
+    header h1 { font-size: 20px; font-weight: 700; color: #2c2826; }
+    header p { font-size: 12px; color: #a09088; margin-top: 5px; }
+
+    /* レッスン選択 */
+    .lesson-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .lesson-btn {
+      background: #fff;
+      border: 1px solid #e0dbd4;
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      text-align: left;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .lesson-btn:active { opacity: 0.8; }
+    .lesson-btn.done { border-color: #6cc87a; }
+    .lesson-emoji { font-size: 26px; }
+    .lesson-info { flex: 1; }
+    .lesson-name { font-size: 15px; font-weight: 600; color: #2c2826; }
+    .lesson-desc { font-size: 12px; color: #a09088; margin-top: 3px; }
+    .lesson-badge { font-size: 18px; }
+
+    /* 練習エリア */
+    .practice-area { display: none; }
+    .practice-area.active { display: block; }
+
+    .back-btn {
+      background: none;
+      border: 1px solid #ddd6ce;
+      border-radius: 8px;
+      color: #a09088;
+      font-size: 13px;
+      padding: 7px 14px;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+
+    /* ガイドボックス */
+    .guide-box {
+      background: #fff;
+      border: 1px solid #e0dbd4;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .guide-step { font-size: 11px; color: #6cc87a; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.05em; }
+    .guide-text { font-size: 15px; color: #2c2826; line-height: 1.7; white-space: pre-line; }
+    .guide-sub { font-size: 12px; color: #a09088; margin-top: 6px; }
+
+    /* フィードバック */
+    .feedback {
+      text-align: center;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .feedback.correct { background: #eaf7ed; color: #4aaa5a; }
+    .feedback.wrong { background: #fdecea; color: #c0504a; }
+
+    /* iPhoneモック */
+    .phone-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+    .phone {
+      width: 260px;
+      height: 520px;
+      background: #f8f5f2;
+      border: 3px solid #ccc6be;
+      border-radius: 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.5);
+    }
+    .notch {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100px; height: 26px;
+      background: #2c2826;
+      border-radius: 0 0 18px 18px;
+      z-index: 20;
+    }
+
+    /* 物理ボタン */
+    .phone-btn {
+      position: absolute;
+      background: #c0bab2;
+      border-radius: 2px;
+      cursor: pointer;
+      z-index: 30;
+      transition: background 0.15s;
+    }
+    .phone-btn:active, .phone-btn.highlight { background: #6cc87a; box-shadow: 0 0 8px rgba(108,200,122,0.6); }
+    #btn-side { right: -4px; top: 120px; width: 4px; height: 60px; }
+    #btn-vol-up { left: -4px; top: 100px; width: 4px; height: 40px; }
+    #btn-vol-down { left: -4px; top: 152px; width: 4px; height: 40px; }
+    #btn-mute { left: -4px; top: 64px; width: 4px; height: 28px; cursor: default; }
+
+    .screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+      border-radius: 37px;
+    }
+
+    /* ---- ホーム画面 ---- */
+    .home-screen {
+      position: absolute; inset: 0;
+      background: linear-gradient(160deg, #b8d4e8 0%, #8fb8d4 100%);
+      display: none; flex-direction: column;
+    }
+    .home-screen.visible { display: flex; }
+    .home-status {
+      display: flex; justify-content: space-between;
+      padding: 36px 20px 8px;
+      font-size: 11px; color: #fff; font-weight: 600;
+    }
+    .home-clock { text-align: center; padding: 16px 0 14px; }
+    .home-clock .time { font-size: 44px; font-weight: 200; color: #fff; }
+    .home-clock .date { font-size: 13px; color: rgba(255,255,255,0.8); }
+    .home-apps {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; padding: 8px 18px; flex: 1;
+    }
+    .app-icon {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; cursor: pointer; border-radius: 10px; padding: 4px;
+      position: relative;
+    }
+    .app-icon:active { opacity: 0.7; }
+    .app-icon.highlight::before {
+      content: ''; position: absolute; inset: -4px;
+      border: 2px solid #fff; border-radius: 14px;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .app-icon-img {
+      width: 46px; height: 46px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .app-icon-name { font-size: 9px; color: #fff; text-align: center; }
+    .home-dock {
+      background: rgba(255,255,255,0.25);
+      border-radius: 22px; margin: 0 16px 22px;
+      padding: 10px; display: flex; justify-content: space-around;
+    }
+
+    /* ---- 設定画面 ---- */
+    .ios-screen {
+      position: absolute; inset: 0;
+      background: #f2f2f7;
+      display: none; flex-direction: column;
+    }
+    .ios-screen.visible { display: flex; }
+    .ios-nav {
+      background: rgba(242,242,247,0.9);
+      padding: 44px 14px 10px;
+      display: flex; align-items: center; gap: 6px;
+      border-bottom: 0.5px solid #c8c7cc;
+    }
+    .ios-back { color: #007aff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 2px; }
+    .ios-title { font-size: 16px; font-weight: 700; color: #000; flex: 1; text-align: center; }
+    .ios-title-placeholder { width: 40px; }
+    .ios-search-bar {
+      background: #f2f2f7;
+      padding: 8px 14px 10px;
+    }
+    .ios-search-inner {
+      background: #e5e5ea; border-radius: 10px;
+      padding: 7px 12px; font-size: 13px; color: #8e8e93;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ios-list { flex: 1; overflow-y: auto; padding: 16px 0; }
+    .ios-group { margin-bottom: 22px; padding: 0 14px; }
+    .ios-group-label { font-size: 11px; color: #6e6e73; padding: 0 4px 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .ios-item {
+      background: #fff; display: flex; align-items: center;
+      padding: 11px 14px; border-bottom: 0.5px solid #e5e5ea;
+      cursor: pointer; position: relative;
+    }
+    .ios-item:first-child { border-radius: 10px 10px 0 0; }
+    .ios-item:last-child { border-bottom: none; border-radius: 0 0 10px 10px; }
+    .ios-item:only-child { border-radius: 10px; border-bottom: none; }
+    .ios-item.highlight { background: rgba(108,200,122,0.12); outline: 1.5px solid #6cc87a; }
+    .ios-item-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; margin-right: 12px; flex: 0 0 28px; }
+    .ios-item-label { flex: 1; font-size: 14px; color: #000; }
+    .ios-item-value { font-size: 13px; color: #8e8e93; margin-right: 4px; }
+    .ios-chevron { font-size: 12px; color: #c7c7cc; }
+
+    /* ---- LINEモック ---- */
+    .line-screen {
+      position: absolute; inset: 0;
+      background: #fff;
+      display: none; flex-direction: column;
+    }
+    .line-screen.visible { display: flex; }
+    .line-header {
+      background: #00b900;
+      padding: 36px 14px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .line-header-title { font-size: 16px; font-weight: 700; color: #fff; }
+    .line-header-icons { display: flex; gap: 14px; font-size: 18px; color: rgba(255,255,255,0.9); }
+
+    /* トーク一覧 */
+    .line-talk-list { flex: 1; overflow-y: auto; }
+    .line-talk-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-bottom: 0.5px solid #f0f0f0;
+      cursor: pointer; position: relative;
+    }
+    .line-talk-item:active { background: #f8f8f8; }
+    .line-talk-item.highlight { background: rgba(108,200,122,0.1); outline: 1.5px solid #6cc87a; }
+    .line-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex: 0 0 44px;
+      background: #f0f0f0;
+    }
+    .line-talk-info { flex: 1; min-width: 0; }
+    .line-talk-name { font-size: 14px; font-weight: 600; color: #222; }
+    .line-talk-preview { font-size: 12px; color: #aaa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .line-talk-meta { text-align: right; }
+    .line-talk-time { font-size: 11px; color: #bbb; }
+    .line-unread {
+      background: #ff3b30; color: #fff;
+      border-radius: 10px; font-size: 11px; font-weight: 700;
+      padding: 1px 6px; margin-top: 4px; display: inline-block;
+    }
+
+    /* トーク画面 */
+    .line-chat-header {
+      background: #00b900;
+      padding: 36px 14px 10px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .line-chat-back { color: #fff; font-size: 20px; cursor: pointer; }
+    .line-chat-title { font-size: 15px; font-weight: 700; color: #fff; }
+    .line-chat-body {
+      flex: 1; overflow-y: auto;
+      background: #e2ddd5;
+      padding: 12px 10px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .line-msg { display: flex; align-items: flex-end; gap: 6px; }
+    .line-msg.me { flex-direction: row-reverse; }
+    .line-msg-avatar { width: 28px; height: 28px; border-radius: 50%; background: #ddd; display: flex; align-items: center; justify-content: center; font-size: 14px; flex: 0 0 28px; }
+    .line-bubble {
+      max-width: 160px; padding: 8px 11px;
+      border-radius: 14px; font-size: 13px; line-height: 1.5;
+    }
+    .line-msg.them .line-bubble { background: #fff; color: #222; border-bottom-left-radius: 4px; }
+    .line-msg.me .line-bubble { background: #00b900; color: #fff; border-bottom-right-radius: 4px; }
+    .line-msg-time { font-size: 10px; color: rgba(0,0,0,0.4); }
+    .line-sticker { font-size: 42px; background: none !important; padding: 0 !important; }
+
+    .line-input-area {
+      background: #f5f5f5; border-top: 0.5px solid #ddd;
+      padding: 8px 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .line-input-icons { display: flex; gap: 10px; font-size: 20px; color: #888; }
+    .line-input-icon { cursor: pointer; padding: 2px; }
+    .line-input-icon.highlight { color: #6cc87a; }
+    .line-input-box {
+      flex: 1; background: #fff; border: 1px solid #ddd;
+      border-radius: 18px; padding: 7px 12px;
+      font-size: 13px; color: #222; min-height: 34px;
+      display: flex; align-items: center; cursor: text;
+    }
+    .line-input-box.highlight { border-color: #6cc87a; background: rgba(108,200,122,0.05); }
+    .line-input-cursor { animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .line-send-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: #00b900; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer; flex: 0 0 34px;
+    }
+    .line-send-btn.highlight { background: #6cc87a; box-shadow: 0 0 8px rgba(108,200,122,0.5); }
+    .line-send-btn.disabled { background: #ccc; cursor: default; }
+
+    /* スタンプパネル */
+    .line-sticker-panel {
+      background: #f5f5f5; border-top: 0.5px solid #ddd;
+      padding: 12px; display: none;
+    }
+    .line-sticker-panel.visible { display: block; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .sticker-item { font-size: 32px; text-align: center; cursor: pointer; padding: 4px; border-radius: 8px; }
+    .sticker-item:active { background: #eee; }
+    .sticker-item.highlight { background: rgba(108,200,122,0.15); outline: 1.5px solid #6cc87a; }
+
+    /* LINEタブバー */
+    .line-tabbar {
+      background: #fff; border-top: 0.5px solid #ddd;
+      display: flex; padding: 6px 0 16px;
+    }
+    .line-tab {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 2px; font-size: 10px; color: #aaa; cursor: pointer;
+    }
+    .line-tab.active { color: #00b900; }
+    .line-tab-icon { font-size: 20px; }
+
+    /* LINEメニューパネル */
+    .line-menu-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.35);
+      z-index: 50; display: none;
+    }
+    .line-menu-overlay.visible { display: block; }
+    .line-menu-inner {
+      position: absolute; right: 0; top: 0; bottom: 0;
+      width: 190px; background: #fff;
+      display: flex; flex-direction: column; padding-top: 50px;
+    }
+    .line-menu-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 18px; border-bottom: 0.5px solid #f0f0f0;
+      cursor: pointer; font-size: 13px; color: #222;
+    }
+    .line-menu-item:active { background: #f5f5f5; }
+    .line-menu-item.highlight { background: rgba(108,200,122,0.1); outline: 1.5px solid #6cc87a; }
+    .line-menu-icon { font-size: 18px; }
+
+    /* LINEアルバム一覧 */
+    .line-album-screen {
+      position: absolute; inset: 0; background: #f2f2f2;
+      display: none; flex-direction: column;
+    }
+    .line-album-screen.visible { display: flex; }
+    .line-album-grid {
+      flex: 1; padding: 12px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; overflow-y: auto;
+    }
+    .album-card {
+      background: #fff; border-radius: 10px;
+      overflow: hidden; cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .album-card:active { opacity: 0.8; }
+    .album-cover {
+      height: 80px; display: flex; align-items: center;
+      justify-content: center; font-size: 32px;
+    }
+    .album-name { font-size: 12px; font-weight: 600; color: #222; padding: 5px 8px 1px; }
+    .album-count { font-size: 11px; color: #aaa; padding: 0 8px 6px; }
+    .album-add-card {
+      background: #fff; border-radius: 10px;
+      border: 2px dashed #ddd;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px; cursor: pointer; min-height: 110px;
+      font-size: 11px; color: #bbb;
+    }
+    .album-add-card.highlight { border-color: #6cc87a; color: #6cc87a; }
+    .album-add-card-icon { font-size: 26px; }
+
+    /* アルバム詳細 */
+    .line-album-detail {
+      position: absolute; inset: 0; background: #000;
+      display: none; flex-direction: column;
+    }
+    .line-album-detail.visible { display: flex; }
+    .album-photos {
+      flex: 1; display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 2px; overflow-y: auto; background: #1a1a1a;
+    }
+    .photo-cell {
+      aspect-ratio: 1; display: flex; align-items: center;
+      justify-content: center; font-size: 30px;
+      background: #2a2a2a; cursor: pointer;
+    }
+    .photo-add-cell {
+      aspect-ratio: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #222; border: 2px dashed #444;
+      font-size: 22px; color: #666; cursor: pointer; gap: 4px;
+    }
+    .photo-add-cell.highlight { border-color: #6cc87a; color: #6cc87a; }
+    .photo-add-cell span { font-size: 10px; }
+
+    /* フラッシュ */
+    .screenshot-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 100; border-radius: 37px; }
+
+    /* 完了 */
+    .complete-screen { text-align: center; padding: 40px 20px; display: none; }
+    .complete-screen.visible { display: block; }
+    .complete-icon { font-size: 60px; margin-bottom: 16px; }
+    .complete-title { font-size: 20px; font-weight: 700; color: #4aaa5a; margin-bottom: 8px; }
+    .complete-text { font-size: 14px; color: #a09088; line-height: 1.8; }
+    .next-btn {
+      background: #6cc87a; color: #fff; border: none;
+      border-radius: 12px; font-size: 15px; font-weight: 700;
+      padding: 14px; width: 100%; cursor: pointer; margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📱 iPhoneハンズオン</h1>
+  <p>実際に操作して覚えよう</p>
+</header>
+
+<div id="lesson-list" class="lesson-list">
+  <div class="lesson-btn" onclick="startLesson('screenshot')">
+    <div class="lesson-emoji">📸</div>
+    <div class="lesson-info">
+      <div class="lesson-name">スクリーンショットを撮る</div>
+      <div class="lesson-desc">サイドボタン＋音量ボタンを素早く両方押す</div>
+    </div>
+    <div class="lesson-badge" id="badge-screenshot">▶</div>
+  </div>
+  <div class="lesson-btn" onclick="startLesson('settings')">
+    <div class="lesson-emoji">⚙️</div>
+    <div class="lesson-info">
+      <div class="lesson-name">設定アプリを開く</div>
+      <div class="lesson-desc">ホーム画面からアプリを探す練習</div>
+    </div>
+    <div class="lesson-badge" id="badge-settings">▶</div>
+  </div>
+  <div class="lesson-btn" onclick="startLesson('mail')">
+    <div class="lesson-emoji">📧</div>
+    <div class="lesson-info">
+      <div class="lesson-name">メールアカウントを追加する</div>
+      <div class="lesson-desc">設定の中を辿っていく練習</div>
+    </div>
+    <div class="lesson-badge" id="badge-mail">▶</div>
+  </div>
+  <div class="lesson-btn" onclick="startLesson('line-msg')">
+    <div class="lesson-emoji">💬</div>
+    <div class="lesson-info">
+      <div class="lesson-name">LINEでメッセージを送る</div>
+      <div class="lesson-desc">トーク画面でメッセージを送る練習</div>
+    </div>
+    <div class="lesson-badge" id="badge-line-msg">▶</div>
+  </div>
+  <div class="lesson-btn" onclick="startLesson('line-sticker')">
+    <div class="lesson-emoji">😄</div>
+    <div class="lesson-info">
+      <div class="lesson-name">LINEでスタンプを送る</div>
+      <div class="lesson-desc">スタンプパネルを開いてスタンプを送る</div>
+    </div>
+    <div class="lesson-badge" id="badge-line-sticker">▶</div>
+  </div>
+  <div class="lesson-btn" onclick="startLesson('line-album')">
+    <div class="lesson-emoji">🖼</div>
+    <div class="lesson-info">
+      <div class="lesson-name">LINEのアルバムに写真を追加する</div>
+      <div class="lesson-desc">メニュー→アルバム→写真追加の流れ</div>
+    </div>
+    <div class="lesson-badge" id="badge-line-album">▶</div>
+  </div>
+</div>
+
+<div id="practice-area" class="practice-area">
+  <button class="back-btn" onclick="backToList()">← レッスン一覧へ</button>
+  <div class="guide-box" id="guide-box">
+    <div class="guide-step" id="guide-step">STEP 1</div>
+    <div class="guide-text" id="guide-text"></div>
+    <div class="guide-sub" id="guide-sub"></div>
+  </div>
+  <div class="feedback" id="feedback"></div>
+  <div class="phone-wrap">
+    <div class="phone" id="phone">
+      <div class="notch"></div>
+      <div class="phone-btn" id="btn-side" onclick="phoneAction('side')"></div>
+      <div class="phone-btn" id="btn-vol-up" onclick="phoneAction('vol-up')"></div>
+      <div class="phone-btn" id="btn-vol-down"></div>
+      <div class="phone-btn" id="btn-mute"></div>
+      <div class="screen">
+
+        <!-- ホーム画面 -->
+        <div class="home-screen" id="home-screen">
+          <div class="home-status"><span>9:41</span><span>📶 🔋</span></div>
+          <div class="home-clock">
+            <div class="time">9:41</div>
+            <div class="date">7月4日（金）</div>
+          </div>
+          <div class="home-apps">
+            <div class="app-icon" id="app-settings" onclick="phoneAction('open-settings')">
+              <div class="app-icon-img" style="background:#8e8e93">⚙️</div>
+              <div class="app-icon-name">設定</div>
+            </div>
+            <div class="app-icon" onclick="phoneAction('wrong')">
+              <div class="app-icon-img" style="background:#1c7a1c">💬</div>
+              <div class="app-icon-name">LINE</div>
+            </div>
+            <div class="app-icon" id="app-line" onclick="phoneAction('open-line')">
+              <div class="app-icon-img" style="background:#00b900">💬</div>
+              <div class="app-icon-name">LINE</div>
+            </div>
+            <div class="app-icon" onclick="phoneAction('wrong')">
+              <div class="app-icon-img" style="background:#007aff">📷</div>
+              <div class="app-icon-name">カメラ</div>
+            </div>
+            <div class="app-icon" onclick="phoneAction('wrong')">
+              <div class="app-icon-img" style="background:#34c759">📞</div>
+              <div class="app-icon-name">電話</div>
+            </div>
+            <div class="app-icon" onclick="phoneAction('wrong')">
+              <div class="app-icon-img" style="background:#ff9500">📁</div>
+              <div class="app-icon-name">ファイル</div>
+            </div>
+            <div class="app-icon" onclick="phoneAction('wrong')">
+              <div class="app-icon-img" style="background:#5856d6">🗓</div>
+              <div class="app-icon-name">カレンダー</div>
+            </div>
+            <div class="app-icon" onclick="phoneAction('wrong')">
+              <div class="app-icon-img" style="background:#ff2d55">🎵</div>
+              <div class="app-icon-name">ミュージック</div>
+            </div>
+          </div>
+          <div class="home-dock">
+            <div class="app-icon" onclick="phoneAction('wrong')"><div class="app-icon-img" style="background:#007aff">📞</div></div>
+            <div class="app-icon" onclick="phoneAction('wrong')"><div class="app-icon-img" style="background:#34c759">💬</div></div>
+            <div class="app-icon" onclick="phoneAction('wrong')"><div class="app-icon-img" style="background:#ff9500">🌐</div></div>
+            <div class="app-icon" onclick="phoneAction('wrong')"><div class="app-icon-img" style="background:#2c2826">🎵</div></div>
+          </div>
+        </div>
+
+        <!-- 設定画面 -->
+        <div class="ios-screen" id="settings-screen">
+          <div class="ios-nav">
+            <span class="ios-back" onclick="phoneAction('back-home')">‹ ホーム</span>
+            <div class="ios-title">設定</div>
+            <div class="ios-title-placeholder"></div>
+          </div>
+          <div class="ios-search-bar"><div class="ios-search-inner">🔍 検索</div></div>
+          <div class="ios-list">
+            <div class="ios-group">
+              <div class="ios-item" id="settings-mail" onclick="phoneAction('open-mail-settings')">
+                <div class="ios-item-icon" style="background:#007aff">📧</div>
+                <div class="ios-item-label">メール</div>
+                <div class="ios-chevron">›</div>
+              </div>
+              <div class="ios-item" onclick="phoneAction('wrong')">
+                <div class="ios-item-icon" style="background:#34c759">💬</div>
+                <div class="ios-item-label">メッセージ</div>
+                <div class="ios-chevron">›</div>
+              </div>
+              <div class="ios-item" onclick="phoneAction('wrong')">
+                <div class="ios-item-icon" style="background:#ff2d55">📞</div>
+                <div class="ios-item-label">FaceTime</div>
+                <div class="ios-chevron">›</div>
+              </div>
+            </div>
+            <div class="ios-group">
+              <div class="ios-item" onclick="phoneAction('wrong')">
+                <div class="ios-item-icon" style="background:#8e8e93">🔔</div>
+                <div class="ios-item-label">通知</div>
+                <div class="ios-chevron">›</div>
+              </div>
+              <div class="ios-item" onclick="phoneAction('wrong')">
+                <div class="ios-item-icon" style="background:#5856d6">🔋</div>
+                <div class="ios-item-label">バッテリー</div>
+                <div class="ios-chevron">›</div>
+              </div>
+              <div class="ios-item" onclick="phoneAction('wrong')">
+                <div class="ios-item-icon" style="background:#007aff">📶</div>
+                <div class="ios-item-label">Wi-Fi</div>
+                <div class="ios-chevron">›</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- メール設定 -->
+        <div class="ios-screen" id="mail-screen">
+          <div class="ios-nav">
+            <span class="ios-back" onclick="phoneAction('back-settings')">‹ 設定</span>
+            <div class="ios-title">メール</div>
+            <div class="ios-title-placeholder"></div>
+          </div>
+          <div class="ios-list">
+            <div class="ios-group">
+              <div class="ios-group-label">アカウント</div>
+              <div class="ios-item" id="settings-accounts" onclick="phoneAction('open-accounts')">
+                <div class="ios-item-icon" style="background:#8e8e93">👤</div>
+                <div class="ios-item-label">アカウント</div>
+                <div class="ios-chevron">›</div>
+              </div>
+            </div>
+            <div class="ios-group">
+              <div class="ios-item" onclick="phoneAction('wrong')"><div class="ios-item-label">プレビュー</div><div class="ios-item-value">2行</div><div class="ios-chevron">›</div></div>
+              <div class="ios-item" onclick="phoneAction('wrong')"><div class="ios-item-label">スワイプオプション</div><div class="ios-chevron">›</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- アカウント一覧 -->
+        <div class="ios-screen" id="accounts-screen">
+          <div class="ios-nav">
+            <span class="ios-back" onclick="phoneAction('back-mail')">‹ メール</span>
+            <div class="ios-title">アカウント</div>
+            <div class="ios-title-placeholder"></div>
+          </div>
+          <div class="ios-list">
+            <div class="ios-group">
+              <div class="ios-group-label">アカウント</div>
+              <div class="ios-item" onclick="phoneAction('wrong')">
+                <div class="ios-item-icon" style="background:#007aff">📧</div>
+                <div class="ios-item-label">iCloud</div>
+                <div class="ios-chevron">›</div>
+              </div>
+            </div>
+            <div class="ios-group">
+              <div class="ios-item" id="btn-add-account" onclick="phoneAction('add-account')">
+                <div class="ios-item-label" style="color:#007aff">アカウントを追加</div>
+                <div class="ios-chevron">›</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LINEトーク一覧 -->
+        <div class="line-screen" id="line-home">
+          <div class="line-header">
+            <div class="line-header-title">トーク</div>
+            <div class="line-header-icons"><span>🔍</span><span>✏️</span></div>
+          </div>
+          <div class="line-talk-list">
+            <div class="line-talk-item" id="line-friend-yui" onclick="phoneAction('open-chat')">
+              <div class="line-avatar">👧</div>
+              <div class="line-talk-info">
+                <div class="line-talk-name">ゆいちゃん</div>
+                <div class="line-talk-preview">ありがとう！また今度ね</div>
+              </div>
+              <div class="line-talk-meta">
+                <div class="line-talk-time">12:30</div>
+                <div class="line-unread">2</div>
+              </div>
+            </div>
+            <div class="line-talk-item" onclick="phoneAction('wrong')">
+              <div class="line-avatar">👨</div>
+              <div class="line-talk-info">
+                <div class="line-talk-name">たけし</div>
+                <div class="line-talk-preview">了解！</div>
+              </div>
+              <div class="line-talk-meta"><div class="line-talk-time">昨日</div></div>
+            </div>
+            <div class="line-talk-item" onclick="phoneAction('wrong')">
+              <div class="line-avatar">🏢</div>
+              <div class="line-talk-info">
+                <div class="line-talk-name">〇〇グループ</div>
+                <div class="line-talk-preview">たけし：お疲れ様でした</div>
+              </div>
+              <div class="line-talk-meta"><div class="line-talk-time">月曜</div></div>
+            </div>
+          </div>
+          <div class="line-tabbar">
+            <div class="line-tab"><div class="line-tab-icon">🏠</div>ホーム</div>
+            <div class="line-tab active"><div class="line-tab-icon">💬</div>トーク</div>
+            <div class="line-tab"><div class="line-tab-icon">📰</div>ニュース</div>
+            <div class="line-tab"><div class="line-tab-icon">💳</div>ウォレット</div>
+          </div>
+        </div>
+
+        <!-- LINEトーク画面 -->
+        <div class="line-screen" id="line-chat">
+          <div class="line-chat-header">
+            <span class="line-chat-back" onclick="phoneAction('back-line-home')">‹</span>
+            <div class="line-avatar" style="width:32px;height:32px;font-size:16px;">👧</div>
+            <div class="line-chat-title">ゆいちゃん</div>
+            <span id="btn-chat-menu" style="color:#fff;font-size:18px;cursor:pointer;padding:4px 0 4px 10px;" onclick="phoneAction('open-chat-menu')">☰</span>
+          </div>
+          <div class="line-chat-body" id="chat-body">
+            <div class="line-msg them">
+              <div class="line-msg-avatar">👧</div>
+              <div class="line-bubble">最近どう？元気にしてる？</div>
+              <div class="line-msg-time">12:28</div>
+            </div>
+            <div class="line-msg them">
+              <div class="line-msg-avatar">👧</div>
+              <div class="line-bubble">暇だったら今度ご飯行こうよ！</div>
+              <div class="line-msg-time">12:30</div>
+            </div>
+          </div>
+          <div class="line-sticker-panel" id="sticker-panel">
+            <div class="sticker-grid">
+              <div class="sticker-item" id="sticker-1" onclick="phoneAction('send-sticker')">😊</div>
+              <div class="sticker-item" onclick="phoneAction('wrong-sticker')">😂</div>
+              <div class="sticker-item" onclick="phoneAction('wrong-sticker')">🙏</div>
+              <div class="sticker-item" onclick="phoneAction('wrong-sticker')">👍</div>
+              <div class="sticker-item" onclick="phoneAction('wrong-sticker')">❤️</div>
+              <div class="sticker-item" onclick="phoneAction('wrong-sticker')">🎉</div>
+              <div class="sticker-item" onclick="phoneAction('wrong-sticker')">😴</div>
+              <div class="sticker-item" onclick="phoneAction('wrong-sticker')">😢</div>
+            </div>
+          </div>
+          <div class="line-input-area">
+            <div class="line-input-icons">
+              <span class="line-input-icon" id="btn-sticker" onclick="phoneAction('open-sticker')">😊</span>
+              <span class="line-input-icon" onclick="phoneAction('wrong')">📷</span>
+            </div>
+            <div class="line-input-box" id="line-input-box" onclick="phoneAction('tap-input')">
+              <span id="input-text" style="color:#aaa">メッセージを入力</span>
+            </div>
+            <div class="line-send-btn disabled" id="line-send-btn" onclick="phoneAction('send-msg')">➤</div>
+          </div>
+        </div>
+
+        <!-- LINEメニューパネル（トーク画面に重なる） -->
+        <div class="line-menu-overlay" id="line-menu-overlay" onclick="phoneAction('close-menu')">
+          <div class="line-menu-inner" onclick="event.stopPropagation()">
+            <div class="line-menu-item" id="menu-album" onclick="phoneAction('open-album-list')">
+              <span class="line-menu-icon">🖼</span>アルバム
+            </div>
+            <div class="line-menu-item" onclick="phoneAction('wrong')">
+              <span class="line-menu-icon">📝</span>ノート
+            </div>
+            <div class="line-menu-item" onclick="phoneAction('wrong')">
+              <span class="line-menu-icon">📅</span>カレンダー
+            </div>
+            <div class="line-menu-item" onclick="phoneAction('wrong')">
+              <span class="line-menu-icon">📂</span>ファイル
+            </div>
+            <div class="line-menu-item" onclick="phoneAction('wrong')">
+              <span class="line-menu-icon">🔔</span>通知をオフ
+            </div>
+          </div>
+        </div>
+
+        <!-- LINEアルバム一覧 -->
+        <div class="line-album-screen" id="line-album-list">
+          <div class="line-chat-header">
+            <span class="line-chat-back" onclick="phoneAction('back-chat')">‹</span>
+            <div class="line-chat-title">アルバム</div>
+          </div>
+          <div class="line-album-grid">
+            <div class="album-card" onclick="phoneAction('open-album-detail')">
+              <div class="album-cover" style="background:#d4ecd4;">🌸</div>
+              <div class="album-name">お花見2024</div>
+              <div class="album-count">8枚</div>
+            </div>
+            <div class="album-card" onclick="phoneAction('open-album-detail')">
+              <div class="album-cover" style="background:#d4d4ec;">🎂</div>
+              <div class="album-name">誕生日パーティー</div>
+              <div class="album-count">12枚</div>
+            </div>
+            <div class="album-add-card" id="btn-create-album" onclick="phoneAction('create-album')">
+              <div class="album-add-card-icon">＋</div>
+              <span>アルバムを作成</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- アルバム詳細（写真一覧） -->
+        <div class="line-album-detail" id="line-album-detail">
+          <div class="line-chat-header">
+            <span class="line-chat-back" onclick="phoneAction('back-album-list')">‹</span>
+            <div class="line-chat-title">お花見2024</div>
+          </div>
+          <div class="album-photos" id="album-photos">
+            <div class="photo-cell">🌸</div>
+            <div class="photo-cell">🍱</div>
+            <div class="photo-cell">🥂</div>
+            <div class="photo-cell">😊</div>
+            <div class="photo-cell">🌸</div>
+            <div class="photo-cell">🌅</div>
+            <div class="photo-add-cell" id="btn-add-photo" onclick="phoneAction('add-photo')">
+              <span>＋</span>
+              <span>写真を追加</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="screenshot-flash" id="flash"></div>
+      </div>
+    </div>
+  </div>
+  <div class="complete-screen" id="complete-screen">
+    <div class="complete-icon">🎉</div>
+    <div class="complete-title">レッスン完了！</div>
+    <div class="complete-text" id="complete-text"></div>
+    <button class="next-btn" onclick="backToList()">レッスン一覧に戻る</button>
+  </div>
+</div>
+
+<script>
+let currentLesson = null;
+let currentStep = 0;
+let inputFilled = false;
+let stickerOpen = false;
+
+const LESSONS = {
+  screenshot: {
+    steps: [
+      {
+        text: 'スクリーンショットを撮ってみましょう。\n右のサイドボタンと左の音量ボタン（上）を素早く両方クリックしてください。\n（スマホなら同時押し）',
+        sub: '→ 2つのボタンが光ります',
+        screen: 'home',
+        action: 'screenshot',
+        highlight: ['btn-side','btn-vol-up'],
+      },
+    ],
+    complete: 'スクリーンショットの撮り方を覚えました！\n実際のiPhoneでも同じようにサイドボタン＋音量アップボタンを同時に押してみてください。',
+  },
+  settings: {
+    steps: [
+      {
+        text: 'ホーム画面から「設定」アプリを探してタップしましょう。',
+        sub: '→ ⚙️ のアイコンです',
+        screen: 'home',
+        action: 'open-settings',
+        highlight: ['app-settings'],
+      },
+    ],
+    complete: '設定アプリの場所を覚えました！\nここからほとんどのiPhoneの設定ができます。',
+  },
+  mail: {
+    steps: [
+      { text: '「設定」アプリをタップしましょう。', sub: '→ ⚙️ のアイコン', screen: 'home', action: 'open-settings', highlight: ['app-settings'] },
+      { text: '設定の中から「メール」をタップしましょう。', sub: '', screen: 'settings', action: 'open-mail-settings', highlight: ['settings-mail'] },
+      { text: '「アカウント」をタップしましょう。', sub: '', screen: 'mail', action: 'open-accounts', highlight: ['settings-accounts'] },
+      { text: '「アカウントを追加」をタップしましょう。', sub: '→ ここから新しいメールアドレスを登録できます', screen: 'accounts', action: 'add-account', highlight: ['btn-add-account'] },
+    ],
+    complete: 'メール設定の場所まで辿り着けました！\n実際のiPhoneでは、この後Gmailなどを選んでアドレスとパスワードを入れたら完了です。',
+  },
+  'line-msg': {
+    steps: [
+      { text: 'LINEを開きましょう。ホーム画面の「LINE」（緑のアイコン）をタップしてください。', sub: '', screen: 'home', action: 'open-line', highlight: ['app-line'] },
+      { text: 'トーク一覧が表示されました。「ゆいちゃん」をタップしてトーク画面を開きましょう。', sub: '', screen: 'line-home', action: 'open-chat', highlight: ['line-friend-yui'] },
+      { text: '画面下のメッセージ入力欄をタップしましょう。', sub: '→ キーボードが出てきます', screen: 'line-chat', action: 'tap-input', highlight: ['line-input-box'] },
+      { text: 'メッセージが入力できました。送信ボタン（➤）をタップしましょう。', sub: '', screen: 'line-chat', action: 'send-msg', highlight: ['line-send-btn'] },
+    ],
+    complete: 'LINEでメッセージを送る流れを覚えました！\nトーク一覧→友達を選ぶ→入力→送信、この4ステップです。',
+  },
+  'line-sticker': {
+    steps: [
+      { text: 'LINEを開きましょう。「LINE」（緑のアイコン）をタップしてください。', sub: '', screen: 'home', action: 'open-line', highlight: ['app-line'] },
+      { text: '「ゆいちゃん」をタップしてトーク画面を開きましょう。', sub: '', screen: 'line-home', action: 'open-chat', highlight: ['line-friend-yui'] },
+      { text: '入力欄の左にあるスタンプボタン（😊）をタップしましょう。', sub: '→ スタンプパネルが開きます', screen: 'line-chat', action: 'open-sticker', highlight: ['btn-sticker'] },
+      { text: 'スタンプを選んでタップしましょう。\n左上の😊をタップしてみてください。', sub: '', screen: 'line-chat', action: 'send-sticker', highlight: ['sticker-1'], panel: 'sticker' },
+    ],
+    complete: 'スタンプの送り方を覚えました！\nスタンプボタン→好きなスタンプをタップするだけです。',
+  },
+  'line-album': {
+    steps: [
+      { text: 'LINEを開きましょう。「LINE」（緑のアイコン）をタップしてください。', sub: '', screen: 'home', action: 'open-line', highlight: ['app-line'] },
+      { text: '「ゆいちゃん」をタップしてトーク画面を開きましょう。', sub: '', screen: 'line-home', action: 'open-chat', highlight: ['line-friend-yui'] },
+      { text: 'トーク画面の右上にある「☰」メニューボタンをタップしましょう。\n\nアルバムはここから開きます。', sub: '', screen: 'line-chat', action: 'open-chat-menu', highlight: ['btn-chat-menu'] },
+      { text: 'メニューの中から「アルバム」をタップしましょう。', sub: '→ 友達と共有している写真がまとめて見られます', screen: 'line-chat', action: 'open-album-list', highlight: ['menu-album'], panel: 'menu' },
+      { text: 'アルバム一覧が表示されました。\n「＋ アルバムを作成」をタップして新しいアルバムを作りましょう。', sub: '→ 既存のアルバムをタップすれば中の写真も見られます', screen: 'line-album-list', action: 'create-album', highlight: ['btn-create-album'] },
+      { text: 'アルバムが作成されました。\n「＋ 写真を追加」をタップして写真をアルバムに入れましょう。', sub: '', screen: 'line-album-detail', action: 'add-photo', highlight: ['btn-add-photo'] },
+    ],
+    complete: 'LINEのアルバム操作を覚えました！\n\n① ☰メニュー → ② アルバム → ③ アルバムを作成 → ④ 写真を追加\n\nこの流れを覚えておくと、友達や家族と写真をまとめて共有するときにとても便利です。',
+  },
+};
+
+function showScreen(name) {
+  ['home-screen','settings-screen','mail-screen','accounts-screen','line-home','line-chat','line-album-list','line-album-detail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('visible');
+  });
+  document.getElementById('line-menu-overlay').classList.remove('visible');
+  const el = document.getElementById(name);
+  if (el) el.classList.add('visible');
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+}
+
+function applyHighlights(ids) {
+  clearHighlights();
+  (ids || []).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('highlight');
+  });
+}
+
+function showFeedback(type, text) {
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback ' + type;
+  fb.textContent = text;
+  fb.style.display = 'block';
+  setTimeout(() => { fb.style.display = 'none'; }, 1800);
+}
+
+function updateGuide() {
+  const lesson = LESSONS[currentLesson];
+  const step = lesson.steps[currentStep];
+  const total = lesson.steps.length;
+  inputFilled = false;
+  stickerOpen = false;
+  document.getElementById('guide-step').textContent = `STEP ${currentStep + 1} / ${total}`;
+  document.getElementById('guide-text').textContent = step.text;
+  document.getElementById('guide-sub').textContent = step.sub || '';
+  showScreen(step.screen === 'home' ? 'home-screen' : step.screen === 'settings' ? 'settings-screen' : step.screen === 'mail' ? 'mail-screen' : step.screen === 'accounts' ? 'accounts-screen' : step.screen === 'line-home' ? 'line-home' : step.screen === 'line-chat' ? 'line-chat' : step.screen);
+  applyHighlights(step.highlight || []);
+  document.getElementById('complete-screen').style.display = 'none';
+  document.getElementById('complete-screen').classList.remove('visible');
+  document.getElementById('guide-box').style.display = '';
+  document.getElementById('phone').style.display = '';
+  document.getElementById('feedback').style.display = 'none';
+  // チャット状態リセット
+  document.getElementById('line-send-btn').className = 'line-send-btn disabled';
+  document.getElementById('input-text').textContent = 'メッセージを入力';
+  document.getElementById('input-text').style.color = '#aaa';
+
+  // パネルはステップの指定に従って開閉する
+  if (step.panel === 'sticker') {
+    document.getElementById('sticker-panel').classList.add('visible');
+    document.getElementById('line-menu-overlay').classList.remove('visible');
+  } else if (step.panel === 'menu') {
+    document.getElementById('line-menu-overlay').classList.add('visible');
+    document.getElementById('sticker-panel').classList.remove('visible');
+  } else {
+    document.getElementById('sticker-panel').classList.remove('visible');
+    document.getElementById('line-menu-overlay').classList.remove('visible');
+  }
+}
+
+function phoneAction(action) {
+  if (!currentLesson) return;
+  const lesson = LESSONS[currentLesson];
+  const step = lesson.steps[currentStep];
+
+  // スクショ専用
+  if (action === 'screenshot') {
+    const flash = document.getElementById('flash');
+    flash.style.opacity = 1;
+    setTimeout(() => { flash.style.opacity = 0; }, 150);
+    setTimeout(() => advanceStep(), 600);
+    return;
+  }
+
+  // ナビゲーション（いつでも動く）
+  if (action === 'back-home') { showScreen('home-screen'); return; }
+  if (action === 'back-settings') { showScreen('settings-screen'); return; }
+  if (action === 'back-mail') { showScreen('mail-screen'); return; }
+  if (action === 'back-line-home') { showScreen('line-home'); return; }
+  if (action === 'back-chat') { showScreen('line-chat'); document.getElementById('line-menu-overlay').classList.remove('visible'); return; }
+  if (action === 'back-album-list') { showScreen('line-album-list'); return; }
+  if (action === 'close-menu') { document.getElementById('line-menu-overlay').classList.remove('visible'); return; }
+  if (action === 'open-album-detail') { showScreen('line-album-detail'); return; }
+
+  // 入力→送信の中間状態管理
+  if (action === 'tap-input' && step.action === 'tap-input') {
+    inputFilled = true;
+    document.getElementById('input-text').textContent = 'ありがとう！ご飯行こう！';
+    document.getElementById('input-text').style.color = '#222';
+    document.getElementById('line-send-btn').className = 'line-send-btn';
+    applyHighlights(['line-send-btn']);
+    advanceStep();
+    return;
+  }
+
+  if (action === 'open-sticker' && step.action === 'open-sticker') {
+    stickerOpen = true;
+    document.getElementById('sticker-panel').classList.add('visible');
+    clearHighlights();
+    advanceStep();
+    return;
+  }
+
+  if (action === 'send-sticker' && step.action === 'send-sticker') {
+    const body = document.getElementById('chat-body');
+    const msg = document.createElement('div');
+    msg.className = 'line-msg me';
+    msg.innerHTML = '<div class="line-bubble line-sticker">😊</div><div class="line-msg-time">今</div>';
+    body.appendChild(msg);
+    body.scrollTop = body.scrollHeight;
+    document.getElementById('sticker-panel').classList.remove('visible');
+    setTimeout(() => advanceStep(), 400);
+    return;
+  }
+
+  if (action === 'wrong-sticker') {
+    showFeedback('wrong', 'もう少し！ 光っているスタンプを選んでください');
+    return;
+  }
+
+  if (action === 'open-chat-menu' && step.action === 'open-chat-menu') {
+    document.getElementById('line-menu-overlay').classList.add('visible');
+    applyHighlights(['menu-album']);
+    advanceStep();
+    return;
+  }
+
+  if (action === 'open-album-list' && step.action === 'open-album-list') {
+    document.getElementById('line-menu-overlay').classList.remove('visible');
+    showScreen('line-album-list');
+    advanceStep();
+    return;
+  }
+
+  if (action === 'create-album' && step.action === 'create-album') {
+    showScreen('line-album-detail');
+    advanceStep();
+    return;
+  }
+
+  if (action === 'add-photo' && step.action === 'add-photo') {
+    const photos = document.getElementById('album-photos');
+    const newPhoto = document.createElement('div');
+    newPhoto.className = 'photo-cell';
+    newPhoto.textContent = ['🤳','🌈','🎶','🏖','🍜','🌺'][Math.floor(Math.random()*6)];
+    photos.insertBefore(newPhoto, document.getElementById('btn-add-photo'));
+    setTimeout(() => advanceStep(), 400);
+    return;
+  }
+
+  if (action === step.action) {
+    const screenMap = { 'open-settings':'settings-screen','open-mail-settings':'mail-screen','open-accounts':'accounts-screen','open-line':'line-home','open-chat':'line-chat' };
+    if (screenMap[action]) showScreen(screenMap[action]);
+    if (action === 'send-msg') {
+      const body = document.getElementById('chat-body');
+      const msg = document.createElement('div');
+      msg.className = 'line-msg me';
+      msg.innerHTML = '<div class="line-bubble">ありがとう！ご飯行こう！</div><div class="line-msg-time">今</div>';
+      body.appendChild(msg);
+      body.scrollTop = body.scrollHeight;
+      document.getElementById('line-send-btn').className = 'line-send-btn disabled';
+      document.getElementById('input-text').textContent = 'メッセージを入力';
+      document.getElementById('input-text').style.color = '#aaa';
+    }
+    setTimeout(() => advanceStep(), action === 'send-msg' ? 400 : 300);
+  } else if (['wrong','wrong-app','wrong-setting'].includes(action)) {
+    showFeedback('wrong', 'もう少し！ 光っているところを探してみてください');
+  }
+}
+
+function advanceStep() {
+  const lesson = LESSONS[currentLesson];
+  showFeedback('correct', '✓ できました！');
+  clearHighlights();
+  currentStep++;
+  if (currentStep >= lesson.steps.length) {
+    setTimeout(() => completeLesson(), 800);
+  } else {
+    setTimeout(() => updateGuide(), 800);
+  }
+}
+
+function completeLesson() {
+  document.getElementById('guide-box').style.display = 'none';
+  document.getElementById('phone').style.display = 'none';
+  document.getElementById('feedback').style.display = 'none';
+  const cs = document.getElementById('complete-screen');
+  document.getElementById('complete-text').textContent = LESSONS[currentLesson].complete;
+  cs.style.display = 'block';
+  cs.classList.add('visible');
+  document.getElementById('badge-' + currentLesson).textContent = '✅';
+}
+
+function startLesson(name) {
+  currentLesson = name;
+  currentStep = 0;
+  document.getElementById('lesson-list').style.display = 'none';
+  document.getElementById('practice-area').classList.add('active');
+  document.getElementById('phone').style.display = '';
+  updateGuide();
+}
+
+function backToList() {
+  currentLesson = null;
+  document.getElementById('lesson-list').style.display = '';
+  document.getElementById('practice-area').classList.remove('active');
+  clearHighlights();
+}
+
+// スクショ：素早く2ボタンクリックで成立（0.6秒以内）
+let lastBtnTime = 0, lastBtnId = null;
+function btnPress(id) {
+  const now = Date.now();
+  if (lastBtnId && lastBtnId !== id && now - lastBtnTime < 600) {
+    phoneAction('screenshot');
+    lastBtnId = null;
+  } else {
+    lastBtnId = id;
+    lastBtnTime = now;
+  }
+}
+document.getElementById('btn-side').addEventListener('click', () => btnPress('side'));
+document.getElementById('btn-vol-up').addEventListener('click', () => btnPress('vol'));
+
+// タッチ同時押し対応
+document.getElementById('btn-side').addEventListener('touchstart', e => { e.preventDefault(); btnPress('side'); }, {passive:false});
+document.getElementById('btn-vol-up').addEventListener('touchstart', e => { e.preventDefault(); btnPress('vol'); }, {passive:false});
+</script>
+</body>
+</html>

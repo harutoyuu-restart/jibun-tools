@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人生ロードマップ — 株式会社じぶん</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding: 20px 16px 60px;
+    }
+
+    header {
+      text-align: center;
+      padding: 32px 0 24px;
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #fff;
+    }
+    header p {
+      font-size: 13px;
+      color: #888;
+      margin-top: 6px;
+    }
+
+    /* ---- 収支カード ---- */
+    .income-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .income-card h2 {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+    }
+    .mode-toggle {
+      display: flex;
+      background: #111;
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 14px;
+      gap: 3px;
+    }
+    .mode-toggle button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .mode-toggle button.active {
+      background: #2a2a2a;
+      color: #fff;
+    }
+    .income-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .income-field label {
+      display: block;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .income-field input {
+      width: 100%;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .income-field input:focus { border-color: #555; }
+
+    .savings-display {
+      background: #111;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .savings-label { font-size: 12px; color: #666; margin-bottom: 4px; }
+    .savings-amount { font-size: 28px; font-weight: 700; color: #7ee8a2; }
+    .savings-sub { font-size: 11px; color: #555; margin-top: 4px; }
+
+    /* ---- ロードマップ ---- */
+    .section-title {
+      font-size: 14px;
+      color: #888;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+
+    .roadmap {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .goal-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .goal-card.achieved {
+      border-color: #7ee8a2;
+      background: #1a2b1e;
+    }
+
+    .goal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .goal-emoji { font-size: 28px; line-height: 1; }
+    .goal-info { flex: 1; }
+    .goal-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #eee;
+    }
+    .goal-price {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+    .goal-months {
+      font-size: 13px;
+      font-weight: 700;
+      color: #7ee8a2;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .goal-months.far { color: #e8a87e; }
+    .goal-months.achieved-text { color: #7ee8a2; }
+
+    .progress-wrap {
+      position: relative;
+      padding-top: 18px;
+    }
+    .runner {
+      position: absolute;
+      top: 0;
+      font-size: 16px;
+      line-height: 1;
+      transform: translateX(-50%) scaleX(-1);
+      transition: left 0.5s ease;
+      pointer-events: none;
+    }
+    .progress-bar {
+      height: 4px;
+      background: #2a2a2a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7ee8a2, #4fc87a);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .goal-edit {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    .goal-edit input {
+      flex: 1;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      padding: 7px 10px;
+      outline: none;
+    }
+    .goal-edit input:focus { border-color: #555; }
+    .goal-edit .edit-label {
+      font-size: 11px;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    /* ---- 追加ボタン ---- */
+    .add-section {
+      background: #1a1a1a;
+      border: 1px dashed #333;
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .add-section h2 { font-size: 14px; color: #888; margin-bottom: 14px; }
+    .add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .add-row {
+      display: flex;
+      gap: 8px;
+    }
+    .add-row input, .add-form input {
+      flex: 1;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .add-row input:focus, .add-form input:focus { border-color: #555; }
+    .add-row input.emoji-input { flex: 0 0 60px; text-align: center; font-size: 20px; }
+    .add-btn {
+      background: #7ee8a2;
+      color: #0f0f0f;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 12px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .add-btn:active { opacity: 0.8; }
+
+    /* ---- 現在の残高 ---- */
+    .balance-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .balance-card h2 { font-size: 14px; color: #888; margin-bottom: 14px; }
+    .balance-input {
+      width: 100%;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #7ee8a2;
+      font-size: 22px;
+      font-weight: 700;
+      padding: 12px 14px;
+      outline: none;
+      text-align: right;
+    }
+    .balance-input:focus { border-color: #555; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🗺 人生ロードマップ</h1>
+  <p>株式会社じぶん</p>
+</header>
+
+<!-- 現在の残高 -->
+<div class="balance-card">
+  <h2>💰 今の残高</h2>
+  <input class="balance-input" type="number" id="balance" placeholder="0" value="0">
+  <div class="savings-sub" style="text-align:right; margin-top:6px; font-size:11px; color:#555">月ごとに更新してください</div>
+</div>
+
+<!-- 収支入力 -->
+<div class="income-card">
+  <h2>📊 月の収支</h2>
+  <div class="mode-toggle">
+    <button id="btn-hourly" class="active" onclick="setMode('hourly')">時給で入力</button>
+    <button id="btn-monthly" onclick="setMode('monthly')">月給で入力</button>
+  </div>
+  <div class="income-grid">
+    <div class="income-field" id="field-hourly">
+      <label>時給（円）</label>
+      <input type="number" id="hourly" placeholder="1200">
+    </div>
+    <div class="income-field" id="field-hours">
+      <label>月の労働時間</label>
+      <input type="number" id="hours" placeholder="160">
+    </div>
+    <div class="income-field" id="field-monthly" style="display:none; grid-column:1/-1">
+      <label>月給（円）</label>
+      <input type="number" id="monthly" placeholder="200000">
+    </div>
+    <div class="income-field">
+      <label>食費（円/月）</label>
+      <input type="number" id="food" placeholder="30000">
+    </div>
+    <div class="income-field">
+      <label>その他経費（円/月）</label>
+      <input type="number" id="expenses" placeholder="20000">
+    </div>
+  </div>
+  <div class="savings-display">
+    <div class="savings-label">月に貯められる金額</div>
+    <div class="savings-amount" id="savings">¥ ---</div>
+    <div class="savings-sub">収入 − 食費 − 経費</div>
+  </div>
+</div>
+
+<!-- ロードマップ -->
+<div class="section-title">🎯 ほしいもの・やりたいこと</div>
+<div class="roadmap" id="roadmap"></div>
+
+<!-- 追加フォーム -->
+<div class="add-section">
+  <h2>＋ 追加する</h2>
+  <div class="add-form">
+    <div class="add-row">
+      <input class="emoji-input" type="text" id="new-emoji" placeholder="🎮" maxlength="2">
+      <input type="text" id="new-name" placeholder="名前（例：MacBook Pro）">
+    </div>
+    <input type="number" id="new-price" placeholder="金額（円）例：280000">
+    <button class="add-btn" onclick="addGoal()">追加する</button>
+  </div>
+</div>
+
+<script>
+  let incomeMode = 'hourly';
+
+  function setMode(mode) {
+    incomeMode = mode;
+    document.getElementById('btn-hourly').classList.toggle('active', mode === 'hourly');
+    document.getElementById('btn-monthly').classList.toggle('active', mode === 'monthly');
+    document.getElementById('field-hourly').style.display = mode === 'hourly' ? '' : 'none';
+    document.getElementById('field-hours').style.display = mode === 'hourly' ? '' : 'none';
+    document.getElementById('field-monthly').style.display = mode === 'monthly' ? '' : 'none';
+    renderSavings();
+  }
+
+  const DEFAULT_GOALS = [
+    { emoji: '💻', name: 'MacBook Pro', price: 298000 },
+    { emoji: '📱', name: 'iPhone 17', price: 160000 },
+    { emoji: '🎮', name: 'ニンテンドースイッチ2', price: 49980 },
+    { emoji: '🎮', name: 'プレイステーション5', price: 69980 },
+    { emoji: '🚢', name: '飛鳥2クルーズ', price: 350000 },
+    { emoji: '🎡', name: 'ユニバーサルスタジオジャパン', price: 15000 },
+  ];
+
+  function load() {
+    const saved = localStorage.getItem('jibun_goals');
+    return saved ? JSON.parse(saved) : DEFAULT_GOALS;
+  }
+
+  function save(goals) {
+    localStorage.setItem('jibun_goals', JSON.stringify(goals));
+  }
+
+  function getMonthlySavings() {
+    let income = 0;
+    if (incomeMode === 'hourly') {
+      const hourly = parseFloat(document.getElementById('hourly').value) || 0;
+      const hours = parseFloat(document.getElementById('hours').value) || 0;
+      income = hourly * hours;
+    } else {
+      income = parseFloat(document.getElementById('monthly').value) || 0;
+    }
+    const food = parseFloat(document.getElementById('food').value) || 0;
+    const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+    return Math.max(0, income - food - expenses);
+  }
+
+  function getBalance() {
+    return parseFloat(document.getElementById('balance').value) || 0;
+  }
+
+  function fmt(n) {
+    return '¥' + Math.floor(n).toLocaleString('ja-JP');
+  }
+
+  function renderSavings() {
+    const s = getMonthlySavings();
+    document.getElementById('savings').textContent = s > 0 ? fmt(s) : '¥ ---';
+    renderRoadmap();
+  }
+
+  function renderRoadmap() {
+    const goals = load();
+    const monthly = getMonthlySavings();
+    const balance = getBalance();
+    const container = document.getElementById('roadmap');
+    container.innerHTML = '';
+
+    goals.forEach((g, i) => {
+      const remaining = Math.max(0, g.price - balance);
+      const pct = Math.min(100, balance > 0 ? (balance / g.price) * 100 : 0);
+      const achieved = balance >= g.price;
+
+      let monthsText = '';
+      if (achieved) {
+        monthsText = '達成！';
+      } else if (monthly <= 0) {
+        monthsText = '収支を入力してね';
+      } else {
+        const months = Math.ceil(remaining / monthly);
+        monthsText = months <= 1 ? 'あと1ヶ月' : `あと${months}ヶ月`;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'goal-card' + (achieved ? ' achieved' : '');
+      card.innerHTML = `
+        <div class="goal-header">
+          <div class="goal-emoji">${g.emoji}</div>
+          <div class="goal-info">
+            <div class="goal-name">${g.name}</div>
+            <div class="goal-price">${fmt(g.price)}</div>
+          </div>
+          <div class="goal-months ${achieved ? 'achieved-text' : monthly > 0 && Math.ceil(remaining/monthly) > 12 ? 'far' : ''}">${monthsText}</div>
+        </div>
+        <div class="progress-wrap">
+          <span class="runner" style="left:${Math.min(pct, 96)}%">${achieved ? '🎉' : '🏃'}</span>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="goal-edit">
+          <span class="edit-label">金額を変更：</span>
+          <input type="number" value="${g.price}" onchange="updatePrice(${i}, this.value)" placeholder="金額">
+          <button onclick="deleteGoal(${i})" style="background:none;border:1px solid #333;border-radius:6px;color:#666;font-size:12px;padding:4px 8px;cursor:pointer">削除</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function updatePrice(i, val) {
+    const goals = load();
+    goals[i].price = parseFloat(val) || 0;
+    save(goals);
+    renderRoadmap();
+  }
+
+  function deleteGoal(i) {
+    const goals = load();
+    goals.splice(i, 1);
+    save(goals);
+    renderRoadmap();
+  }
+
+  function addGoal() {
+    const emoji = document.getElementById('new-emoji').value || '⭐';
+    const name = document.getElementById('new-name').value.trim();
+    const price = parseFloat(document.getElementById('new-price').value) || 0;
+    if (!name) return;
+    const goals = load();
+    goals.push({ emoji, name, price });
+    save(goals);
+    document.getElementById('new-emoji').value = '';
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-price').value = '';
+    renderRoadmap();
+  }
+
+  // イベント
+  ['hourly','hours','monthly','food','expenses'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderSavings);
+  });
+  document.getElementById('balance').addEventListener('input', renderRoadmap);
+
+  // 初期表示
+  renderRoadmap();
+</script>
+</body>
+</html>
